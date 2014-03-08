@@ -3,15 +3,27 @@ sysweb_server
 
 Sysweb
 
-API
-  === fs
+## API
+### auth
+    - login
+    - register
+    - fetchme
+    - 
+    
+### fs
     - cd
     - ls
     - cp
     - mv 
     - mkdir
-    - touch 
+    - touch
+    - echo 
     - append
     - write
-    - echo
+    - read
+    - head
+    - tail
     
+### boot
+    - addboot
+    - removeboot
