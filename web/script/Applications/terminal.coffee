@@ -1,6 +1,6 @@
-$ ()->
+$(()->
 
-    Applications = window.Sysweb.Applicatins
+    Applications = window.Sysweb.Applications
 
     Terminal = Events.extend
         currentDir: "/"
@@ -171,6 +171,7 @@ $ ()->
                 return @nextInput()
 
 
+
     Applications.set("terminal", Terminal)
 
     Terminal.getTerminal = (args)->
@@ -178,6 +179,7 @@ $ ()->
             Terminal.instance = new Terminal(args)
         Terminal.instance.$("#terminal_input input").focus()
         return Terminal.instance
+
 
     # 添加命令
     Terminal.addCommandFunction = (name, fn=(args)->)-> Terminal.commandFunctions[name] = fn
@@ -195,8 +197,7 @@ $ ()->
                 if(result.isDir)
                     self.currentDir = path
                 else
-                    $o = self.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>No Such Dir: #{path}</span>"))
+                    self.outputError("No Such Dir: #{path}")
                 self.goon()
             )
 
@@ -216,8 +217,7 @@ $ ()->
             path = self.getOpreateDir(path)
             Sysweb.fs.touch(path).done((result)->
                 if(result.error)
-                    $o = self.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>#{path}: #{result.message}</span>"))
+                    self.outputError("#{path}: #{result.message}")
                     self.goon()
                 if(result.exists)
                     self.goon()
@@ -231,8 +231,7 @@ $ ()->
             path = self.getOpreateDir(path)
             Sysweb.fs.read(path).done((result)->
                 if(result.error)
-                    $o = self.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>#{path}: #{result.message}</span>"))
+                    self.outputError("#{path}: #{result.message}")
                     self.goon()
                 if(result.exists)
                     $o = self.output()
@@ -249,8 +248,7 @@ $ ()->
             path = self.getOpreateDir(path)
             Sysweb.fs.write(path, text).done((result)->
                 if(result.error)
-                    $o = self.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>#{path}: #{result.message}</span>"))
+                    self.outputError("#{path}: #{result.message}")
                     self.goon()
                 if(result.exists)
                     $o = self.output()
@@ -267,8 +265,7 @@ $ ()->
             path = self.getOpreateDir(path)
             Sysweb.fs.append(path, text).done((result)->
                 if(result.error)
-                    $o = self.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>#{path}: #{result.message}</span>"))
+                    self.outputError("#{path}: #{result.message}")
                     self.goon()
                 if(result.exists)
                     $o = self.output()
@@ -290,10 +287,10 @@ $ ()->
                 text = text.substr(0, text.length-1)
 
             Sysweb.fs.echo(path, text).done((result)->
-                $o = self.output()
                 if(result.error)
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>#{path}: #{result.message}</span>"))
+                    self.outputError("#{path}: #{result.message}")
                 if(result.exists)
+                    $o = self.output()
                     $o.append($("<pre style='padding: 5px 20px; color: #fff;'>#{$("<div/>").text(result.text).html()}</pre>"))
                 self.goon()
             )
@@ -303,18 +300,16 @@ $ ()->
             path = self.getOpreateDir(path)
             Sysweb.fs.mkdir(path).done((result)->
                 if(result.error)
-                    $o = self.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>#{path}: #{result.message}</span>"))
+                    self.outputError("#{path}: #{result.message}")
                 self.goon()
             )
 
-        rm: (line, args, path=args[0] || "")->
+        rm: (line, args, path)->
             self = @
-            path = self.getOpreateDir(path)
+            path = self.getOpreateDir(line.substr(line.indexOf(" ")).trim())
             Sysweb.fs.rm(path).done((result)->
                 if(result.error)
-                    $o = self.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>#{path}: #{result.message}</span>"))
+                    self.outputError("#{path}: #{result.message}")
                     self.goon()
                 if(!result.exists)
                     self.goon()
@@ -330,24 +325,21 @@ $ ()->
             dest = self.getOpreateDir(dest)
             Sysweb.fs.cp(source, dest).done((result)->
                 if(result.error)
-                    $o = self.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>[source: #{source}, dest: #{dest}]: #{result.message}</span>"))
+                    self.outputError("#{path}: #{result.message}")
                 self.goon()
             )
 
         mv: (line, args, source=args[0], dest=args[1])->
             self = @
             if (!source || !dest)
-                $o = self.output()
-                $o.append($("<span style='padding: 5px 20px; color: #f66;'>#{path}: #{result.message}</span>"))
+                self.outputError("#{path}: #{result.message}")
                 self.goon()
                 return
             source = self.getOpreateDir(source)
             dest = self.getOpreateDir(dest)
             Sysweb.fs.mv(source, dest).done((result)->
                 if(result.error)
-                    $o = self.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>[source: #{source}, dest: #{dest}]: #{result.message}</span>"))
+                    self.outputError("#{path}: #{result.message}")
                 self.goon()
             )
 
@@ -374,14 +366,10 @@ $ ()->
 
     terminal = Terminal.getTerminal()
 
-    Terminal.addCommandFunction("browser", (line, args, path=args[0] || "")->
-        path = terminal.getOpreateDir(path)
-        window.open("/fs/#{Sysweb.User.currentUser.username}" + path, "_blank")
-        terminal.goon()
-    )
     # Login
     Terminal.addCommandFunction("login", (line, args, username, password)->
         if(username && password)
+            self = @
             Sysweb.User.login(username, password).done((result)->
                 if(result.user)
                     Sysweb.User.currentUser = result.user
@@ -389,27 +377,24 @@ $ ()->
                     $o = terminal.output()
                     $o.append($("<span style='padding: 5px 20px; color: #6f6;'>has login as [#{result.user.username}]</span>"))
                 else
-                    $o = terminal.output()
-                    $o.append($("<span style='padding: 5px 20px; color: #f66;'>Login failed</span>"))
-
+                    self.outputError("Login Failed")
                 terminal.goon()
             )
         else
-            $o = terminal.output()
-            $o.append($("<span style='padding: 5px 20px; color: #f66;'>args error</span>"))
+            terminal.outputError("args error")
             @goon()
     )
 
     # Register
     Terminal.addCommandFunction("register", (line, args, username, password)->
+        self = @
+        Sysweb.User.once("registerfailed", -> self.goon())
         if(username && password)
             Sysweb.User.register(username, password)
         else
             terminal.outputError('args error')
             @goon()
     )
-
-    Terminal.addCommandFunction("fetchme", (line)-> Sysweb.User.fetch())
 
     # tag, as script,css...
     # path is file path
@@ -423,3 +408,11 @@ $ ()->
         @$outputBox.find(".output_line").hide()
         @goon()
     )
+
+
+#    Terminal.addCommandFunction("browser", (line, args, path=args[0] || "")->
+#        path = terminal.getOpreateDir(path)
+#        window.open("/fs/#{Sysweb.User.currentUser.username}" + path, "_blank")
+#        terminal.goon()
+#    )
+)

@@ -124,20 +124,38 @@
       63289: "num"
     };
     window.KeyBoardMaps = {
+      _callbacks: {},
       _combes: {},
       register: function(combe, callback, ctx) {
         if (ctx == null) {
           ctx = this;
         }
+        callback._listenerSequence = callback._listenerSequence || (new Date().getTime() + Math.random() + "");
         combe = this._combes[combe] = this._combes[combe] || [];
-        combe.push({
+        this._callbacks[callback._listenerSequence] = {
           callback: callback,
           ctx: ctx
-        });
+        };
+        combe.push(callback._listenerSequence);
         return this;
       },
       get: function(combe) {
-        return this._combes[combe];
+        var self;
+        self = this;
+        if (this._combes[combe]) {
+          return this._combes[combe].map(function(sequence) {
+            return self._callbacks[sequence];
+          });
+        }
+      },
+      remove: function(combe, callback, ctx) {
+        var combearr, sequence;
+        if (ctx == null) {
+          ctx = this;
+        }
+        sequence = callback._listenerSequence;
+        combearr = this._combes[combe] = this._combes[combe] || [];
+        return this._combes[combe] = combearr.slice(0, combearr.indexOf(sequence)).concat(combearr.slice(combearr.indexOf(sequence) + 1));
       }
     };
     $(document).on("keydown", function(e) {
@@ -152,7 +170,6 @@
         triggerString += q[key] + "+";
       }
       triggerString = triggerString.substr(0, triggerString.length - 1);
-      console.log(triggerString);
       if ((cbs = KeyBoardMaps.get(triggerString))) {
         for (_j = 0, _len1 = cbs.length; _j < _len1; _j++) {
           evt = cbs[_j];
@@ -172,3 +189,7 @@
   });
 
 }).call(this);
+
+/*
+//@ sourceMappingURL=keymap.map
+*/

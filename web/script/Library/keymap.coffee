@@ -49,13 +49,28 @@ $(->
     };
 
     window.KeyBoardMaps = {
+
+        _callbacks: {}
+
         _combes: {}
+
         register: (combe, callback, ctx = @)->
+            callback._listenerSequence = callback._listenerSequence || (new Date().getTime() + Math.random() + "")
             combe = @_combes[combe] = @_combes[combe] || []
-            combe.push({callback: callback, ctx: ctx})
+            @_callbacks[callback._listenerSequence] = {callback: callback, ctx: ctx}
+            combe.push(callback._listenerSequence)
             @
+
+
         get: (combe)->
-            @_combes[combe]
+            self = @
+            if(@_combes[combe])
+                @_combes[combe].map((sequence)-> self._callbacks[sequence] )
+
+        remove: (combe, callback, ctx = @)->
+            sequence = callback._listenerSequence
+            combearr = @_combes[combe] = @_combes[combe] || []
+            @_combes[combe] = combearr.slice(0, combearr.indexOf(sequence)).concat(combearr.slice(combearr.indexOf(sequence) + 1))
     }
 
     $(document).on("keydown", (e)->
@@ -65,7 +80,6 @@ $(->
         triggerString = ''
         triggerString += q[key] + "+" for key in keyStack
         triggerString = triggerString.substr(0, triggerString.length - 1)
-        console.log(triggerString)
         if (cbs = KeyBoardMaps.get(triggerString))
             for evt in cbs
                 setTimeout(->

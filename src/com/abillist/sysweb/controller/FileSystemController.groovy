@@ -13,50 +13,70 @@ import java.nio.file.NoSuchFileException;
 public class FileSystemController extends AbstractController {
 
 
-
     public void index() {
-
         String path = getPara("path");
         if (path == null) {
             path = "/";
         } else if (!path.startsWith("/")) {
             path = "/" + path;
         }
-
         File file = new File(getMyDir() + path);
-
         renderText(String.valueOf(file.exists()));
     }
 
+
     public void ls() {
-
         File file = new File(getParaPath());
-
         renderJson(file.listFiles().collect {
             [
                 name: it.name,
                 directory: it.isDirectory(),
                 file: it.isFile(),
-                absolutePath: it.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
-                exists: it.exists()
+                absolutePath: it.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
+                exists: it.exists(),
+                parent: it.getParent().replace("$FS_ROOT/${getCurrentUser().getUsername()}", "/").replaceAll("//", "/                              ")
             ]
         });
     }
 
     public void cd() {
         File file = new File(getParaPath());
-        if (!file.exists() || !file.isDirectory()){
+        if (!file.exists() || !file.isDirectory()) {
+            renderError(404)
+            renderJson([
+                error: true,
+                message: "no such dir"
+            ])
+        } else {
+            renderJson([
+                name: file.name,
+                directory: file.isDirectory(),
+                file: file.isFile(),
+                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
+                exists: file.exists()
+            ])
+        }
+    }
+
+//    查看文件信息
+    public void stat(){
+        File file = new File(getParaPath());
+        if (!file.exists()) {
+            renderError(404)
             renderJson([
                 error: true,
                 message: "no such dir"
             ])
         }else {
+
             renderJson([
                 name: file.name,
                 directory: file.isDirectory(),
                 file: file.isFile(),
-                absolutePath: file.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
-                exists: file.exists()
+                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
+                exists: file.exists(),
+                size: file.length(),
+                modify: file.lastModified()
             ])
         }
     }
@@ -76,7 +96,7 @@ public class FileSystemController extends AbstractController {
                 name: file.name,
                 directory: file.isDirectory(),
                 file: file.isFile(),
-                absolutePath: file.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
+                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
                 exists: file.exists()
             ]);
         } catch (IOException e) {
@@ -97,7 +117,7 @@ public class FileSystemController extends AbstractController {
                 name: file.name,
                 directory: file.isDirectory(),
                 file: file.isFile(),
-                absolutePath: file.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
+                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
                 exists: file.exists()
             ]);
         }
@@ -128,7 +148,7 @@ public class FileSystemController extends AbstractController {
                     name: file.name,
                     directory: file.isDirectory(),
                     file: file.isFile(),
-                    absolutePath: file.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
+                    absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
                     exists: file.exists()
                 ])
             }
@@ -165,18 +185,19 @@ public class FileSystemController extends AbstractController {
                     name: source.name,
                     directory: source.isDirectory(),
                     file: source.isFile(),
-                    absolutePath: source.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
+                    absolutePath: source.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
                     exists: source.exists()
                 ],
                 dest: [
                     name: dest.name,
                     directory: dest.isDirectory(),
                     file: dest.isFile(),
-                    absolutePath: dest.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
+                    absolutePath: dest.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
                     exists: dest.exists()
                 ]
             ])
         } else {
+            renderError(404)
             renderJson([
                 error: true,
                 message: "No such source or such dest is exist."
@@ -186,13 +207,13 @@ public class FileSystemController extends AbstractController {
     }
 
     public void mv() {
-
         File source
         File dest
         try {
             source = new File(getParaPath("source"))
             dest = new File(getParaPath("dest"));
         } catch (NoSuchFileException e) {
+            renderError(404)
             renderJson([
                 error: true,
                 message: e.getMessage()
@@ -222,6 +243,7 @@ public class FileSystemController extends AbstractController {
                 ]
             ])
         } else {
+            renderError(404)
             renderJson([
                 error: true,
                 message: "No such source or such dest is exist."
@@ -232,20 +254,20 @@ public class FileSystemController extends AbstractController {
     public void head() {
         File file = new File(getParaPath("path"))
 
-        if (!file.exists() || !file.isFile()){
+        if (!file.exists() || !file.isFile()) {
             renderJson([
                 error: true,
                 message: "file named [${getPara("path")}] not found."
             ])
             return
         }
-        int start = getPara("start")?getParaToInt("start"):0
-        int stop = getPara("stop")?getParaToInt("stop"):10
+        int start = getPara("start") ? getParaToInt("start") : 0
+        int stop = getPara("stop") ? getParaToInt("stop") : 10
         BufferedReader reader = new BufferedReader(new FileReader(file))
         StringBuffer buffer = new StringBuffer()
         String line
-        for (int i; (line = reader.readLine()) != null && i < stop; i ++){
-            if (i >= start){
+        for (int i; (line = reader.readLine()) != null && i < stop; i++) {
+            if (i >= start) {
                 buffer.append(line).append("\n")
             }
         }
@@ -261,23 +283,23 @@ public class FileSystemController extends AbstractController {
 
     public void tail() {
         File file = new File(getParaPath("path"))
-        if (!file.exists() || !file.isFile()){
+        if (!file.exists() || !file.isFile()) {
             renderJson([
                 error: true,
                 message: "file named [${getPara("path")}] not found."
             ])
             return
         }
-        int start = getPara("start")?getParaToInt("start"):0
-        int stop = getPara("stop")?getParaToInt("stop"):10
+        int start = getPara("start") ? getParaToInt("start") : 0
+        int stop = getPara("stop") ? getParaToInt("stop") : 10
         BufferedReader reader = new BufferedReader(new FileReader(file))
         String line
         def lines = []
         def len = stop - start
-        while ((line = reader.readLine()) != null){
+        while ((line = reader.readLine()) != null) {
             lines.push(line)
-            if (lines.size() > len){
-                lines.remove(0)
+            if (lines.size() > len) {
+                lines.pop()
             }
         }
         renderJson([
@@ -298,7 +320,7 @@ public class FileSystemController extends AbstractController {
                 name: file.name,
                 directory: file.isDirectory(),
                 file: file.isFile(),
-                absolutePath: file.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
+                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
                 exists: file.exists(),
                 text: file.text
             ])
@@ -319,7 +341,7 @@ public class FileSystemController extends AbstractController {
             name: file.name,
             directory: file.isDirectory(),
             file: file.isFile(),
-            absolutePath: file.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
+            absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
             exists: file.exists(),
             text: file.text
         ])
@@ -334,7 +356,7 @@ public class FileSystemController extends AbstractController {
                 name: file.name,
                 directory: file.isDirectory(),
                 file: file.isFile(),
-                absolutePath: file.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
+                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
                 exists: file.exists(),
                 text: file.text
             ])
@@ -354,7 +376,7 @@ public class FileSystemController extends AbstractController {
                 name: file.name,
                 directory: file.isDirectory(),
                 file: file.isFile(),
-                absolutePath: file.absolutePath.replace(FS_ROOT + "/" + USERNAME, ""),
+                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
                 exists: file.exists(),
                 text: file.text
             ])

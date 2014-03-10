@@ -15,7 +15,7 @@ $ ()->
         @constructor(arguments)
         @
 
-    Class.prototype.constructor = -> @initialize(arguments)
+    Class.prototype.constructor = -> @initialize.apply(@, arguments)
     Class.prototype.initialize = ->
     Class.extend = (props={}, staticProps={})->
         self = @
@@ -26,16 +26,46 @@ $ ()->
 
     Events = window.Events = -> @constructor(arguments)
     Events = _extend(Events, Class, {
+
         # 监听
-        on: (signal, callback, ctx=@, evts = (@_events[signal] = @_events[signal] || []))-> evts.push({ callback: callback, ctx: ctx })
+        on: (signal, callback, ctx=@, evts = (@_events[signal] = @_events[signal] || {}))->
+            if(!callback)
+                return
+            _listenerSequence = callback._listenerSequence = callback._listenerSequence || (new Date().getTime() + Math.random() )
+            evts[_listenerSequence] = { callback: callback, ctx: ctx }
+
+        unon: (signal, callback)->
+            if @_events[signal] && @_events[signal][callback._listenerSequence]
+                delete @_events[signal][callback._listenerSequence]
+            if @_onceevents[signal] && @_onceevents[signal][callback._listenerSequence]
+                delete @_onceevents[signal][callback._listenerSequence]
+
+        # 监听一次
+        once:(signal, callback, ctx=@, evts = (@_onceevents[signal] = @_onceevents[signal] || {}))->
+            if(!callback)
+                return
+            _listenerSequence = callback._listenerSequence = callback._listenerSequence || (new Date().getTime() + Math.random() )
+            evts[_listenerSequence] = { callback: callback, ctx: ctx }
 
         # 发送
-        trigger: (signal, args=[])-> (setTimeout((-> evt.callback.apply(evt.ctx, args)),1) for evt in evts) if evts = @_events[signal]
+        trigger: (signal, args=[])->
+            self = @
+            ((->
+                delete evts[evtSeq]
+                setTimeout((->
+                    if evt && evt.callback then evt.callback.apply(evt.ctx, args)
+                ),1)
+            )() for evtSeq, evt of evts) if evts = @_onceevents[signal]
+
+            (setTimeout((->
+                if evt && evt.callback then evt.callback.apply(evt.ctx, args)
+            ),1) for evtSeq, evt of evts) if evts = @_events[signal]
     })
 
     Events.prototype.constructor = ->
         @_events = {}
-        @initialize(arguments)
+        @_onceevents = {}
+        @initialize.apply(@, arguments)
         @
 
 
@@ -125,6 +155,10 @@ $ ()->
                     stop: stop
                 })
 
+            # 查看文件状态
+            stat: (path)->
+                $.get("/fs/stat", {path: path})
+
             # 文件缓存在前端
             cache: (path)->
 
@@ -199,8 +233,9 @@ $ ()->
         new _Environment()
     )()
 
-    Applicatins = window.Sysweb.Applicatins = (->
+    Applications = window.Sysweb.Applications = (->
         _Apps = _Sys.extend({
+            AppClass: Events.extend({})
             initialize: -> @_apps = {}
             set: (name, value)->
                 if @_apps[name]
@@ -229,6 +264,8 @@ $ ()->
                     if(!result.error && result.user)
                         self.currentUser = result.user
                         self.trigger("logined")
+                    else
+                        self.trigger("loginfailed")
                 )
             register: (username, password)->
                 self = @
@@ -236,6 +273,8 @@ $ ()->
                     if(!result.error && result.user)
                         self.currentUser = result.user
                         self.trigger("logined")
+                    else
+                        self.trigger("registerfailed")
                 )
             fetch: ()->
                 self = @
@@ -261,6 +300,8 @@ $ ()->
 
     init.removeBoot = (path)->
         $.post("/boot/remve", { path: path })
+
+
 
 
 
