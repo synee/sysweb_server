@@ -104,7 +104,7 @@ $(()->
 
         # 命令结束， 继续
         goon: ()->
-            @$("#terminal_path").text("Sysweb:#{@currentDir}  #{if Sysweb.User.currentUser then Sysweb.User.currentUser.username else 'Anonymous'}$")
+            @$("#terminal_path").text("Sysweb:#{@currentDir}  #{if Sysweb.User.currentUser && Sysweb.User.currentUser.username then Sysweb.User.currentUser.username else 'Anonymous'}$")
             @$input.val("").show().focus()
             @$el.animate({ scrollTop: @$("#terminal_output").height()}, 50)
             @currentInput = @hasInputs.length
@@ -386,14 +386,26 @@ $(()->
     )
 
     # Register
-    Terminal.addCommandFunction("register", (line, args, username, password)->
+    Terminal.addCommandFunction("register", (line, args)->
         self = @
+
+        if(args.indexOf("-e")>=0)
+            email = args[args.indexOf("-e") + 1]
+        if(args.indexOf("-u")>=0)
+            username = args[args.indexOf("-u") + 1]
+        if(args.indexOf("-p")>=0)
+            password = args[args.indexOf("-p") + 1]
+
         Sysweb.User.once("registerfailed", -> self.goon())
-        if(username && password)
-            Sysweb.User.register(username, password)
+        if(email && password)
+            Sysweb.User.register({
+                email: email
+                username: username
+                password: password
+            })
         else
             terminal.outputError('args error')
-            @goon()
+        @goon()
     )
 
     # tag, as script,css...

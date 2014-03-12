@@ -136,6 +136,14 @@ public class FileSystemController extends AbstractController {
     public void rm() {
         File file = new File(getParaPath());
         if (file.exists()) {
+            String relativePath = file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")
+            if (relativePath == "/__sys.js"){
+                renderJson([
+                    error: true,
+                    message: "This file cannot be removed."
+                ])
+                return
+            }
             if (file.isFile()) file.delete();
             if (file.isDirectory()) file.deleteDir();
             if (file.exists()) {
@@ -148,7 +156,7 @@ public class FileSystemController extends AbstractController {
                     name: file.name,
                     directory: file.isDirectory(),
                     file: file.isFile(),
-                    absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
+                    absolutePath: relativePath,
                     exists: file.exists()
                 ])
             }
@@ -211,7 +219,15 @@ public class FileSystemController extends AbstractController {
         File dest
         try {
             source = new File(getParaPath("source"))
-            dest = new File(getParaPath("dest"));
+            dest = new File(getParaPath("dest"))
+            String relativePath = source.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")
+            if (relativePath == "/__sys.js"){
+                renderJson([
+                    error: true,
+                    message: "This file cannot be removed."
+                ])
+                return
+            }
         } catch (NoSuchFileException e) {
             renderError(404)
             renderJson([

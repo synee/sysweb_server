@@ -12,7 +12,7 @@ class SecureInterceptor implements Interceptor{
     @Override
     void intercept(ActionInvocation ai) {
         User user = (ai.controller as AbstractController).currentUser
-        if (user){
+        if (user && user.exists()){
             ai.invoke()
         }else {
             ai.controller.renderError(403)

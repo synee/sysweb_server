@@ -3,6 +3,7 @@ package com.abillist.sysweb.controller
 import com.abillist.sysweb.model.User
 import com.jfinal.core.Controller
 import com.jfinal.kit.PathKit
+import org.apache.commons.io.FileUtils
 
 import java.nio.file.NoSuchFileException
 
@@ -11,7 +12,7 @@ import java.nio.file.NoSuchFileException
  */
 class AbstractController extends Controller{
 
-    public static String FS_ROOT = PathKit.getWebRootPath() + "/fs";
+    public static String FS_ROOT = PathKit.getWebRootPath() + "/sys_root";
     public static String USERNAME = "freeman";
     private currentUser
 
@@ -19,6 +20,7 @@ class AbstractController extends Controller{
         File file = new File("$FS_ROOT/${getCurrentUser() != null ? getCurrentUser().username : USERNAME}");
         if (!file.exists()) {
             file.mkdirs();
+            new File(file.getAbsolutePath() + "/__sys.js").createNewFile()
         }
         return file.getAbsolutePath();
     }
@@ -47,7 +49,7 @@ class AbstractController extends Controller{
     }
 
     protected void setCurrentUser(currentUser) {
-        setSessionAttr("currentUser", currentUser)
+        this.setSessionAttr("currentUser", currentUser)
         this.currentUser = currentUser
     }
 }

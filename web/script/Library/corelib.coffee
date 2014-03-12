@@ -255,21 +255,19 @@ $ ()->
                     if(request.status == 403)
                         self.trigger("forbidden", [event, request, settings])
 
-            login: (username, password)->
+            login: (params={})->
                 self = @
-                $.post("/login", {
-                    username: username,
-                    password: password
-                }).done((result)->
+                $.post("/login", params).done((result)->
                     if(!result.error && result.user)
                         self.currentUser = result.user
                         self.trigger("logined")
+                        window.location.reload()
                     else
                         self.trigger("loginfailed")
                 )
-            register: (username, password)->
+            register: (params={})->
                 self = @
-                $.post("/register", { username: username, password: password }).done((result)->
+                $.post("/register", params).done((result)->
                     if(!result.error && result.user)
                         self.currentUser = result.user
                         self.trigger("logined")

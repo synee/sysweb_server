@@ -1,13 +1,16 @@
 package com.abillist.sysweb;
 
 import com.abillist.sysweb.controller.*;
-import com.abillist.sysweb.model.Boot;
-import com.abillist.sysweb.model.Share;
 import com.abillist.sysweb.model.User;
 import com.jfinal.config.*;
+import com.jfinal.handler.Handler;
 import com.jfinal.plugin.activerecord.ActiveRecordPlugin;
 import com.jfinal.plugin.druid.DruidPlugin;
 import com.jfinal.render.ViewType;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 
 public class ServerConfig extends JFinalConfig{
@@ -21,8 +24,6 @@ public class ServerConfig extends JFinalConfig{
     public void configRoute(Routes routes) {
         routes.add("/", HomeController.class);
         routes.add("/fs", FileSystemController.class);
-        routes.add("/boot", BootController.class);
-        routes.add("/share", ShareController.class);
         routes.add("/user", UserController.class);
     }
 
@@ -35,8 +36,6 @@ public class ServerConfig extends JFinalConfig{
         plugins.add(arp);
 
         arp.addMapping("user", User.class);
-        arp.addMapping("share", Share.class);
-        arp.addMapping("boot", Boot.class);
 
     }
 
@@ -47,6 +46,15 @@ public class ServerConfig extends JFinalConfig{
 
     @Override
     public void configHandler(Handlers handlers) {
-
+        handlers.add(new Handler() {
+            @Override
+            public void handle(String target, HttpServletRequest request, HttpServletResponse response, boolean[] isHandled) {
+                HttpSession session = request.getSession();
+                if (session.getAttribute("currentUser") == null){
+                    session.setAttribute("currentUser", new User());
+                }
+                nextHandler.handle(target, request, response, isHandled);
+            }
+        });
     }
 }

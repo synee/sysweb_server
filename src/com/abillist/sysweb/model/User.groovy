@@ -1,5 +1,6 @@
 package com.abillist.sysweb.model
 
+import com.abillist.sysweb.service.EmailService
 import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.codec.digest.Md5Crypt
@@ -13,10 +14,13 @@ class User extends AbstractModel<User>{
     long id
     private String username
     private String password
-    private List<Boot> boots
 
     long getId() {
-        return this.getInt("id")
+        try {
+            return this.getInt("id")
+        }catch (Exception e){
+            return 0;
+        }
     }
 
     void setId(long id) {
@@ -24,7 +28,7 @@ class User extends AbstractModel<User>{
     }
 
     String getUsername() {
-        return this.getStr("username")
+        return this.getStr("username")?:"Anonymous"
     }
 
     void setUsername(String username) {
@@ -40,12 +44,8 @@ class User extends AbstractModel<User>{
         this.password = encrypt(password)
     }
 
-    List<Boot> loadBoots() {
-        return Boot.dao.findByUser(this)
-    }
-
     public static User login(String username, String password){
-        User user = dao.findFirst("SELECT * FROM user AS u WHERE u.username=?", username)
+        User user = dao.findFirst("SELECT * FROM user AS u WHERE u.username=? AND u.enable=true ", username)
         if (user && encrypt(password).equals(user.getPassword())){
             return user
         }else {
@@ -53,20 +53,33 @@ class User extends AbstractModel<User>{
         }
     }
 
-    public static User register(String username, String password){
-        User user = dao.findFirst("SELECT * FROM user AS u WHERE u.username=?", username)
+    public static User register(String email, String username, String password){
+        User user = dao.findFirst("SELECT * FROM user AS u WHERE u.username=? OR email=?", username, email)
         if (user){
             return null
         }else {
             user = new User()
-            user.set("username", username).set("password", encrypt(password))
+            String code = Base64.encodeBase64URLSafeString(encrypt("$email$password").bytes)
+            user.set("username", username)
+                .set("password", encrypt(password))
+                .set("email", email)
+                .set("code", code)
             user.save()
+            EmailService.sendEmail(
+                email,
+                "Account Active",
+                "Click <a href='http://localhost:8080/user/active?uid=${user.getId()}&code=$code'>http://localhost:8080/user/active?uid=${user.getId()}&code=$code</a> to active your account."
+            )
             return user
         }
     }
 
     public static encrypt(String source){
         return Base64.encodeBase64String(DigestUtils.md5Hex(source.getBytes()).getBytes())
+    }
+
+    public boolean exists(){
+        return this.getId() && this.getId() > 0 && this.getBoolean("enable")
     }
 
 }

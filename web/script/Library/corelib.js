@@ -344,28 +344,29 @@
             }
           });
         },
-        login: function(username, password) {
+        login: function(params) {
           var self;
+          if (params == null) {
+            params = {};
+          }
           self = this;
-          return $.post("/login", {
-            username: username,
-            password: password
-          }).done(function(result) {
+          return $.post("/login", params).done(function(result) {
             if (!result.error && result.user) {
               self.currentUser = result.user;
-              return self.trigger("logined");
+              self.trigger("logined");
+              return window.location.reload();
             } else {
               return self.trigger("loginfailed");
             }
           });
         },
-        register: function(username, password) {
+        register: function(params) {
           var self;
+          if (params == null) {
+            params = {};
+          }
           self = this;
-          return $.post("/register", {
-            username: username,
-            password: password
-          }).done(function(result) {
+          return $.post("/register", params).done(function(result) {
             if (!result.error && result.user) {
               self.currentUser = result.user;
               return self.trigger("logined");
