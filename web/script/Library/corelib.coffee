@@ -84,60 +84,54 @@ $ ()->
 
             # 查看目录下的文件的详细信息
             ls: (path)->
-                hanler = { done: ->}
-                jqx = $.get("/fs/ls", {
+                $.get("/fs/ls", {
                     path: path
-                }).done((result)->
-                    console.log(result)
-                )
+                }).done(resultHandler)
 
             # 查看当前目录
             pwd: ()->
 
             # 是否存在目录
             isDir: (path)->
-                jqx = $.get("/fs/isDir",{
+                $.get("/fs/isDir",{
                     path: path
-                })
-                jqx.done((result)->
-                    console.log(result)
-                )
+                }).done(resultHandler)
 
             # 是否存在文件
             isFile: (path)->
                 $.get("/fs/isFile",{
                     path: path
-                })
+                }).done(resultHandler)
             # 新建文件
             touch: (path)->
                 $.post("/fs/touch",{
                     path: path
-                })
+                }).done(resultHandler)
 
             # 新建文件夹
             mkdir: (path)->
                 $.post("/fs/mkdir",{
                     path: path
-                })
+                }).done(resultHandler)
 
             # 删除
             rm: (path)->
                 $.post("/fs/rm", {
                     path: path
-                })
+                }).done(resultHandler)
 
             # 复制
             cp: (source, dest)->
                 $.post("/fs/cp", {
                     source: source
                     dest: dest
-                })
+                }).done(resultHandler)
             # 移动
             mv: (source, dest)->
                 $.post("/fs/mv", {
                     source: source
                     dest: dest
-                })
+                }).done(resultHandler)
 
             # 查看开头几行
             head: (path, start, stop)->
@@ -145,7 +139,7 @@ $ ()->
                     path: path
                     start: start
                     stop: stop
-                })
+                }).done(resultHandler)
 
             # 查看末尾几行
             tail: (path, start, stop)->
@@ -153,11 +147,11 @@ $ ()->
                     path: path
                     start: start
                     stop: stop
-                })
+                }).done(resultHandler)
 
             # 查看文件状态
             stat: (path)->
-                $.get("/fs/stat", {path: path})
+                $.get("/fs/stat", {path: path}).done(resultHandler)
 
             # 文件缓存在前端
             cache: (path)->
@@ -166,34 +160,39 @@ $ ()->
             read: (path)->
                 $.post("/fs/read", {
                     path: path
-                })
+                }).done(resultHandler)
 
             # 重写文件
             write: (path, text)->
                 $.post("/fs/write", {
                     path: path
                     text: text
-                })
+                }).done(resultHandler)
 
             # 在文件末尾添加
             append: (path, text)->
                 $.post("/fs/append", {
                     path: path
                     text: text
-                })
+                }).done(resultHandler)
 
             echo: (path, text)->
                 $.post("/fs/echo", {
                     path: path
                     text: text
-                })
+                }).done(resultHandler)
 
             head: (path)->
                 $.get("/fs/head",{
                     path: path
-                })
+                }).done(resultHandler)
         })
-        new _Fs()
+        newfs = new _Fs()
+
+        resultHandler = (result)->
+            if(result.error)
+                newfs.trigger("fserror", arguments)
+        newfs
     )()
 
     Memory = Sysweb.Memory = (->
@@ -255,7 +254,9 @@ $ ()->
                     if(request.status == 403)
                         self.trigger("forbidden", [event, request, settings])
 
+
             login: (params={})->
+                """ @parems email password """
                 self = @
                 $.post("/login", params).done((result)->
                     if(!result.error && result.user)
@@ -266,6 +267,7 @@ $ ()->
                         self.trigger("loginfailed")
                 )
             register: (params={})->
+                """ @parems email password """
                 self = @
                 $.post("/register", params).done((result)->
                     if(!result.error && result.user)

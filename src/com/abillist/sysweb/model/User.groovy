@@ -44,8 +44,8 @@ class User extends AbstractModel<User>{
         this.password = encrypt(password)
     }
 
-    public static User login(String username, String password){
-        User user = dao.findFirst("SELECT * FROM user AS u WHERE u.username=? AND u.enable=true ", username)
+    public static User login(String email, String password){
+        User user = dao.findFirst("SELECT * FROM user AS u WHERE u.email=? AND u.enable=true ", email)
         if (user && encrypt(password).equals(user.getPassword())){
             return user
         }else {
@@ -68,7 +68,11 @@ class User extends AbstractModel<User>{
             EmailService.sendEmail(
                 email,
                 "Account Active",
-                "Click <a href='http://localhost:8080/user/active?uid=${user.getId()}&code=$code'>http://localhost:8080/user/active?uid=${user.getId()}&code=$code</a> to active your account."
+                """
+                Click <a href='http://localhost:8080/user/active?uid=${user.getId()}&code=$code'>http://localhost:8080/user/active?uid=${user.getId()}&code=$code</a> to active your account.
+                <br>
+                Your password: $password
+                """
             )
             return user
         }

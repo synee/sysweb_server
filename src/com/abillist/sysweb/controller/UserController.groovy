@@ -15,9 +15,9 @@ class UserController extends AbstractController{
 
     @ActionKey("/login")
     public void login(){
-        String username = getPara("username")
+        String email = getPara("email")
         String password = getPara("password")
-        User user = User.login(username, password)
+        User user = User.login(email, password)
         if (user){
             if (!user.getBoolean("enable")){
                 renderJson([
@@ -43,7 +43,7 @@ class UserController extends AbstractController{
             return
         }
         String email = getPara("email")
-        String username = getPara("username")?:email
+        String username = email
         String password = getPara("password")
         User user = User.register(email, username, password)
         if (user){

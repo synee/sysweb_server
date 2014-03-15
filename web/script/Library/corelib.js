@@ -148,7 +148,7 @@
       return new _Sys();
     })();
     fs = Sysweb.fs = (function() {
-      var _Fs;
+      var newfs, resultHandler, _Fs;
       _Fs = _Sys.extend({
         cd: function(path) {
           return $.get("/fs/cd", {
@@ -156,108 +156,104 @@
           });
         },
         ls: function(path) {
-          var hanler, jqx;
-          hanler = {
-            done: function() {}
-          };
-          return jqx = $.get("/fs/ls", {
+          return $.get("/fs/ls", {
             path: path
-          }).done(function(result) {
-            return console.log(result);
-          });
+          }).done(resultHandler);
         },
         pwd: function() {},
         isDir: function(path) {
-          var jqx;
-          jqx = $.get("/fs/isDir", {
+          return $.get("/fs/isDir", {
             path: path
-          });
-          return jqx.done(function(result) {
-            return console.log(result);
-          });
+          }).done(resultHandler);
         },
         isFile: function(path) {
           return $.get("/fs/isFile", {
             path: path
-          });
+          }).done(resultHandler);
         },
         touch: function(path) {
           return $.post("/fs/touch", {
             path: path
-          });
+          }).done(resultHandler);
         },
         mkdir: function(path) {
           return $.post("/fs/mkdir", {
             path: path
-          });
+          }).done(resultHandler);
         },
         rm: function(path) {
           return $.post("/fs/rm", {
             path: path
-          });
+          }).done(resultHandler);
         },
         cp: function(source, dest) {
           return $.post("/fs/cp", {
             source: source,
             dest: dest
-          });
+          }).done(resultHandler);
         },
         mv: function(source, dest) {
           return $.post("/fs/mv", {
             source: source,
             dest: dest
-          });
+          }).done(resultHandler);
         },
         head: function(path, start, stop) {
           return $.post("/fs/head", {
             path: path,
             start: start,
             stop: stop
-          });
+          }).done(resultHandler);
         },
         tail: function(path, start, stop) {
           return $.post("/fs/tail", {
             path: path,
             start: start,
             stop: stop
-          });
+          }).done(resultHandler);
         },
         stat: function(path) {
           return $.get("/fs/stat", {
             path: path
-          });
+          }).done(resultHandler);
         },
         cache: function(path) {},
         read: function(path) {
           return $.post("/fs/read", {
             path: path
-          });
+          }).done(resultHandler);
         },
         write: function(path, text) {
           return $.post("/fs/write", {
             path: path,
             text: text
-          });
+          }).done(resultHandler);
         },
         append: function(path, text) {
           return $.post("/fs/append", {
             path: path,
             text: text
-          });
+          }).done(resultHandler);
         },
         echo: function(path, text) {
           return $.post("/fs/echo", {
             path: path,
             text: text
-          });
+          }).done(resultHandler);
         },
         head: function(path) {
           return $.get("/fs/head", {
             path: path
-          });
+          }).done(resultHandler);
         }
       });
-      return new _Fs();
+      newfs = new _Fs();
+      resultHandler = function(result) {
+        if (result.error) {
+          return newfs.trigger("fserror", arguments);
+        }
+      };
+      return newfs;
     })();
     Memory = Sysweb.Memory = (function() {
       var _Memory;
@@ -349,6 +345,7 @@
           if (params == null) {
             params = {};
           }
+          " @parems email password ";
           self = this;
           return $.post("/login", params).done(function(result) {
             if (!result.error && result.user) {
@@ -365,6 +362,7 @@
           if (params == null) {
             params = {};
           }
+          " @parems email password ";
           self = this;
           return $.post("/register", params).done(function(result) {
             if (!result.error && result.user) {

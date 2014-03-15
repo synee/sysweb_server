@@ -1,15 +1,18 @@
 package com.abillist.sysweb.controller
 
+
 import com.abillist.sysweb.interceptor.SecureInterceptor
-import com.jfinal.aop.Before;
-import com.jfinal.core.Controller;
-import com.jfinal.kit.PathKit
-import com.jfinal.render.TextRender
-import org.apache.commons.io.FileUtils;
+import com.jfinal.aop.Before
+import com.jfinal.core.ActionInvocation
+import org.apache.commons.io.FileUtils
 
-import java.nio.file.NoSuchFileException;
+import java.lang.annotation.Documented
+import java.lang.annotation.ElementType
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.lang.annotation.Target;
 
-@Before(SecureInterceptor.class)
+@Before([SecureInterceptor.class, PathCheckInterceptor.class])
 public class FileSystemController extends AbstractController {
 
 
@@ -24,259 +27,118 @@ public class FileSystemController extends AbstractController {
         renderText(String.valueOf(file.exists()));
     }
 
-
-    public void ls() {
-        File file = new File(getParaPath());
-        renderJson(file.listFiles().collect {
-            [
-                name: it.name,
-                directory: it.isDirectory(),
-                file: it.isFile(),
-                absolutePath: it.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                exists: it.exists(),
-                parent: it.getParent().replace("$FS_ROOT/${getCurrentUser().getUsername()}", "/").replaceAll("//", "/                              ")
-            ]
-        });
+    private String getAbsolutePath(String abpath) {
+        return abpath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")
     }
 
-    public void cd() {
+    def fileToInfo(File file) {
+        [
+            name: file.name,
+            directory: file.isDirectory(),
+            file: file.isFile(),
+            absolutePath: this.getAbsolutePath(file.absolutePath),
+            exists: file.exists(),
+            parent: file.getParent().replace("$FS_ROOT/${getCurrentUser().getUsername()}", "/").replaceAll("//", "/"),
+            modify: file.lastModified()
+        ]
+    }
+
+
+    @PathCheck()
+    public void ls() {
         File file = new File(getParaPath());
-        if (!file.exists() || !file.isDirectory()) {
-            renderError(404)
-            renderJson([
-                error: true,
-                message: "no such dir"
-            ])
-        } else {
-            renderJson([
-                name: file.name,
-                directory: file.isDirectory(),
-                file: file.isFile(),
-                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                exists: file.exists()
-            ])
-        }
+        renderJson(file.listFiles().collect { this.fileToInfo(it) });
+    }
+
+    @PathCheck(beDirectory = ["path"])
+    public void cd() {
+        renderJson(this.fileToInfo(new File(getParaPath())))
     }
 
 //    查看文件信息
-    public void stat(){
+    @PathCheck()
+    public void stat() {
         File file = new File(getParaPath());
-        if (!file.exists()) {
-            renderError(404)
-            renderJson([
-                error: true,
-                message: "no such dir"
-            ])
-        }else {
-
-            renderJson([
-                name: file.name,
-                directory: file.isDirectory(),
-                file: file.isFile(),
-                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                exists: file.exists(),
-                size: file.length(),
-                modify: file.lastModified()
-            ])
-        }
+        renderJson(this.fileToInfo(file))
     }
 
+    @PathCheck(exists = [], notExists = ["path"])
     public void touch() {
         File file = new File(getParaPath());
-        if (file.exists()) {
-            renderJson([
-                error: true,
-                message: "Same named file or dir has exist."
-            ])
-            return;
-        }
-        try {
-            file.createNewFile();
-            renderJson([
-                name: file.name,
-                directory: file.isDirectory(),
-                file: file.isFile(),
-                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                exists: file.exists()
-            ]);
-        } catch (IOException e) {
-            renderError(500, new TextRender(e.getMessage()));
-        }
+        file.createNewFile();
+        renderJson(this.fileToInfo(file));
     }
 
+
+    @PathCheck(exists = [], notExists = ["path"])
     public void mkdir() {
         File file = new File(getParaPath());
-        if (file.exists()) {
-            renderJson([
-                error: true,
-                message: "Same named file or dir has exist"
-            ])
-        } else {
-            file.mkdir();
-            renderJson([
-                name: file.name,
-                directory: file.isDirectory(),
-                file: file.isFile(),
-                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                exists: file.exists()
-            ]);
-        }
+        file.mkdirs()
+        renderJson(this.fileToInfo(file))
     }
 
+    @PathCheck(beDirectory = ["path"])
     public void isDir() {
         File file = new File(getParaPath())
-
-        renderJson([
-            isDir: file.exists() && file.isDirectory()
-        ])
+        renderJson([error: true, isDir: file.exists() && file.isDirectory()])
     }
 
-    public void mkdirs() {}
-
+    @PathCheck()
     public void rm() {
         File file = new File(getParaPath());
-        if (file.exists()) {
-            String relativePath = file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")
-            if (relativePath == "/__sys.js"){
-                renderJson([
-                    error: true,
-                    message: "This file cannot be removed."
-                ])
-                return
-            }
+        String relativePath = file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")
+        if (relativePath == "/__sys.js") {
+            renderError400WithMessage("This file cannot be removed.");
+        } else {
             if (file.isFile()) file.delete();
             if (file.isDirectory()) file.deleteDir();
             if (file.exists()) {
-                renderJson([
-                    error: true,
-                    message: "Delete Failed."
-                ])
+                renderErrorWithMessage(500, "Remove failed.");
             } else {
-                renderJson([
-                    name: file.name,
-                    directory: file.isDirectory(),
-                    file: file.isFile(),
-                    absolutePath: relativePath,
-                    exists: file.exists()
-                ])
+                renderJson(this.fileToInfo(file))
             }
-        } else {
-            renderJson([
-                error: true,
-                message: "No such file or dir."
-            ])
         }
-
     }
 
+    @PathCheck(exists = ["source"], notExists = ["dest"])
     public void cp() {
-        File source
-        File dest
-        try {
-            source = new File(getParaPath("source"))
-            dest = new File(getParaPath("dest"));
-        } catch (NoSuchFileException e) {
-            renderJson([
-                error: true,
-                message: e.getMessage()
-            ])
-            return
+        File source = new File(getParaPath("source"))
+        File dest = new File(getParaPath("dest"));
+        if (source.isDirectory()) {
+            FileUtils.copyDirectory(source, dest)
+        } else if (source.isFile()) {
+            FileUtils.copyFile(source, dest)
         }
-        if (source.exists() && !dest.exists()) {
-            if (source.isDirectory()) {
-                FileUtils.copyDirectory(source, dest)
-            } else if (source.isFile()) {
-                FileUtils.copyFile(source, dest)
-            }
-            renderJson([
-                source: [
-                    name: source.name,
-                    directory: source.isDirectory(),
-                    file: source.isFile(),
-                    absolutePath: source.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                    exists: source.exists()
-                ],
-                dest: [
-                    name: dest.name,
-                    directory: dest.isDirectory(),
-                    file: dest.isFile(),
-                    absolutePath: dest.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                    exists: dest.exists()
-                ]
-            ])
-        } else {
-            renderError(404)
-            renderJson([
-                error: true,
-                message: "No such source or such dest is exist."
-            ])
-        }
+        renderJson([
+            source: this.fileToInfo(source),
+            dest: this.fileToInfo(dest)
+        ])
 
     }
 
+    @PathCheck(exists = ["source"], notExists = ["dest"])
     public void mv() {
-        File source
-        File dest
-        try {
-            source = new File(getParaPath("source"))
-            dest = new File(getParaPath("dest"))
-            String relativePath = source.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")
-            if (relativePath == "/__sys.js"){
-                renderJson([
-                    error: true,
-                    message: "This file cannot be removed."
-                ])
-                return
-            }
-        } catch (NoSuchFileException e) {
-            renderError(404)
-            renderJson([
-                error: true,
-                message: e.getMessage()
-            ])
-            return
-        }
-        if (source.exists() && !dest.exists()) {
+        File source = new File(getParaPath("source"))
+        File dest = new File(getParaPath("dest"));
+        String relativePath = source.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")
+        if (relativePath == "/__sys.js") {
+            renderError400WithMessage("This file cannot be removed.");
+        } else {
             if (source.isDirectory()) {
                 FileUtils.moveDirectory(source, dest)
             } else if (source.isFile()) {
                 FileUtils.moveFile(source, dest)
             }
             renderJson([
-                source: [
-                    name: source.name,
-                    directory: source.isDirectory(),
-                    file: source.isFile(),
-                    absolutePath: source.absolutePath.replace(FS_ROOT + "/" + getCurrentUser().getUsername(), ""),
-                    exists: source.exists()
-                ],
-                dest: [
-                    name: dest.name,
-                    directory: dest.isDirectory(),
-                    file: dest.isFile(),
-                    absolutePath: dest.absolutePath.replace(FS_ROOT + "/" + getCurrentUser().getUsername(), ""),
-                    exists: dest.exists()
-                ]
-            ])
-        } else {
-            renderError(404)
-            renderJson([
-                error: true,
-                message: "No such source or such dest is exist."
+                source: this.fileToInfo(source),
+                dest: this.fileToInfo(dest)
             ])
         }
     }
 
+    @PathCheck(beFile = ["path"])
     public void head() {
         File file = new File(getParaPath("path"))
-
-        if (!file.exists() || !file.isFile()) {
-            renderJson([
-                error: true,
-                message: "file named [${getPara("path")}] not found."
-            ])
-            return
-        }
         int start = getPara("start") ? getParaToInt("start") : 0
         int stop = getPara("stop") ? getParaToInt("stop") : 10
         BufferedReader reader = new BufferedReader(new FileReader(file))
@@ -287,25 +149,14 @@ public class FileSystemController extends AbstractController {
                 buffer.append(line).append("\n")
             }
         }
-        renderJson([
-            name: file.name,
-            directory: file.isDirectory(),
-            file: file.isFile(),
-            absolutePath: file.absolutePath.replace("$FS_ROOT/$USERNAME", ""),
-            exists: file.exists(),
-            text: buffer.toString()
-        ])
+        def jsonFile = this.fileToInfo(file)
+        jsonFile.text = buffer.toString()
+        renderJson(jsonFile)
     }
 
+    @PathCheck(beFile = ["path"])
     public void tail() {
         File file = new File(getParaPath("path"))
-        if (!file.exists() || !file.isFile()) {
-            renderJson([
-                error: true,
-                message: "file named [${getPara("path")}] not found."
-            ])
-            return
-        }
         int start = getPara("start") ? getParaToInt("start") : 0
         int stop = getPara("stop") ? getParaToInt("stop") : 10
         BufferedReader reader = new BufferedReader(new FileReader(file))
@@ -318,90 +169,117 @@ public class FileSystemController extends AbstractController {
                 lines.pop()
             }
         }
-        renderJson([
-            name: file.name,
-            directory: file.isDirectory(),
-            file: file.isFile(),
-            absolutePath: file.absolutePath.replace("$FS_ROOT/$USERNAME", ""),
-            exists: file.exists(),
-            text: lines.join("\n")
-        ])
+        def jsonFile = this.fileToInfo(file)
+        jsonFile.text = lines.join("\n")
+        renderJson(jsonFile)
     }
 
+    @PathCheck(beFile = ["path"])
     public void read() {
-
         File file = new File(getParaPath());
-        if (file.exists() && file.isFile()) {
-            renderJson([
-                name: file.name,
-                directory: file.isDirectory(),
-                file: file.isFile(),
-                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                exists: file.exists(),
-                text: file.text
-            ])
-        } else {
-            renderJson([
-                error: true,
-                message: "No such file."
-            ])
-        }
-
+        def jsonFile = this.fileToInfo(file)
+        jsonFile.text = file.text
+        renderJson(jsonFile)
     }
 
+    @PathCheck(beFile = ["path"])
     public void write() {
-
         File file = new File(getParaPath());
         file.write(getPara("text"))
-        renderJson([
-            name: file.name,
-            directory: file.isDirectory(),
-            file: file.isFile(),
-            absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-            exists: file.exists(),
-            text: file.text
-        ])
-
+        def jsonFile = this.fileToInfo(file)
+        jsonFile.text = file.text
+        renderJson(jsonFile)
     }
 
+    @PathCheck(beFile = ["path"])
     public void append() {
         File file = new File(getParaPath());
-        if (file.exists() && file.isFile()) {
-            file.append(getPara("text"))
-            renderJson([
-                name: file.name,
-                directory: file.isDirectory(),
-                file: file.isFile(),
-                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                exists: file.exists(),
-                text: file.text
-            ])
-        } else {
-            renderJson([
-                error: true,
-                message: "No such file."
-            ])
-        }
+        file.append(getPara("text"))
+        def jsonFile = this.fileToInfo(file)
+        jsonFile.text = file.text
+        renderJson(jsonFile)
     }
 
+    @PathCheck(beFile = ["path"])
     public void echo() {
         File file = new File(getParaPath());
-        if (file.exists() && file.isFile()) {
-            file.append(getPara("text") + "\n")
-            renderJson([
-                name: file.name,
-                directory: file.isDirectory(),
-                file: file.isFile(),
-                absolutePath: file.absolutePath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", ""),
-                exists: file.exists(),
-                text: file.text
-            ])
-        } else {
-            renderJson([
-                error: true,
-                message: "No such file."
-            ])
-        }
+        file.append(getPara("text") + "\n")
+        def jsonFile = this.fileToInfo(file)
+        jsonFile.text = file.text
+        renderJson(jsonFile)
     }
 
+    public static class PathCheckInterceptor implements com.jfinal.aop.Interceptor {
+        @Override
+        void intercept(ActionInvocation ai) {
+            boolean allRight = true
+            FileSystemController controller = ai.controller as FileSystemController
+            PathCheck check = ai.method.getAnnotation(PathCheck.class)
+            if (check) {
+                def existsRight = [true]
+                def notExistsRight = [true]
+                def beFileRight = [true]
+                def beDireRight = [true]
+                def file
+                check.exists().each {
+                    file = new File(controller.getParaPath(it))
+                    if (!file.exists()) {
+                        existsRight = [false, controller.getAbsolutePath(file.absolutePath)]
+                    }
+                }
+                check.notExists().each {
+                    file = new File(controller.getParaPath(it))
+                    if (file.exists()) {
+                        notExistsRight = [false, controller.getAbsolutePath(file.absolutePath)]
+                    }
+                }
+                check.beFile().each {
+                    file = new File(controller.getParaPath(it))
+                    if (file.isFile()) {
+                        beFileRight = [false, controller.getAbsolutePath(file.absolutePath)]
+                    }
+                }
+                check.beDirectory().each {
+                    file = new File(controller.getParaPath(it))
+                    if (file.isDirectory()) {
+                        beFileRight = [false, controller.getAbsolutePath(file.absolutePath)]
+                    }
+                }
+                allRight = existsRight[0] && notExistsRight[0] && beFileRight[0] && beDireRight[0]
+                if (!allRight) {
+                    def msg = ""
+                    if (!existsRight[0]) {
+                        msg += "${existsRight[1]} is not exist. "
+                    }
+                    if (!notExistsRight[0]) {
+                        msg += "${notExistsRight[1]} has already been exist. "
+                    }
+                    if (!beFileRight[0]) {
+                        msg += "${beFileRight[1]} is not a file. "
+                    }
+                    if (!beDireRight[0]) {
+                        msg += "${beDireRight[1]} is not a directory. "
+                    }
+                    controller.renderError400WithMessage(msg)
+                }
+            }
+            if (allRight) {
+                ai.invoke()
+            }
+        }
+    }
+}
+
+
+@Retention(RetentionPolicy.RUNTIME)
+@Target([ElementType.TYPE, ElementType.METHOD])
+@Documented
+@interface PathCheck {
+    String[] exists() default ["path"];
+
+    String[] notExists() default [];
+
+    String[] beFile() default [];
+
+    String[] beDirectory() default [];
 }
