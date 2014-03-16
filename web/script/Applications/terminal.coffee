@@ -1,5 +1,4 @@
 $(()->
-
     Applications = window.Sysweb.Applications
 
     Terminal = Events.extend
@@ -14,7 +13,7 @@ $(()->
                         </div>
                     </div>
                   """
-        style: {
+        style:
             position: "fixed"
             top: 0
             left: 0
@@ -24,17 +23,16 @@ $(()->
             background: "#333"
             color: "#0fc"
             overflow: "auto"
-        }
 
         $: (selector)->
-            @$el.find(selector)
+            @$el.find.apply(@$el, arguments)
 
-        # 已经输入
+    # 已经输入
         hasInputs: []
-        # 当前输入
+    # 当前输入
         currentInput: 0
 
-        # 前一个输入
+    # 前一个输入
         prevInput: ->
             @currentInput = @currentInput - 1
             if @currentInput < 0
@@ -48,7 +46,7 @@ $(()->
                 @currentInput = @hasInputs.length
                 @$input.val("")
 
-        # 后一个输入
+    # 后一个输入
         nextInput: ->
             @currentInput = @currentInput + 1
             if(@hasInputs[@currentInput] == undefined)
@@ -60,23 +58,24 @@ $(()->
                 @currentInput = @hasInputs.length
                 @$input.val("")
 
-        # 输出 Element
-        outputEl: (message) -> $("""<div class='output_line' style='font-family: monospace; font-size: 12px; padding: 2px 0;'>#{message}</div>""")
+    # 输出 Element
+        outputEl: (message) ->
+            $("""<div class='output_line' style='font-family: monospace; font-size: 12px; padding: 2px 0;'>#{message}</div>""")
 
-        # 输出
-        output: (message='') ->
+    # 输出
+        output: (message = '') ->
             $output = @outputEl(message)
             @$outputBox.append($output)
             $output
 
-        # 输出错误
-        outputError: (message='')->
+    # 输出错误
+        outputError: (message = '')->
             $o = @output()
             $o.append($("<span style='padding: 5px 20px; color: #f66;'>#{message}</span>"))
             @goon()
 
-        # 提交命令
-        commit: (line=@$input.val())->
+    # 提交命令
+        commit: (line = @line = @$input.val())->
             $o = @output()
             $o.append($("<span style='padding: 5px 5px 5px 0px; color: #f8c;'>#{@$('#terminal_path').text()}</span>"))
             $o.append($("<pre style='padding: 3px 5px 3px 2px; display: inline;'>#{$("<div/>").text(line).html()}</pre>"))
@@ -89,7 +88,15 @@ $(()->
                 return
             @execute(line)
 
-        # 执行命令
+    # getParam
+        getParam: (name) ->
+            args = @line.split(/\s+/)
+            if(args.indexOf(name) >= 0)
+                return args[args.indexOf(name) + 1]
+            else
+                return undefined
+
+    # 执行命令
         execute: (line)->
             self = @
             argArr = line.split(/\s+/)
@@ -102,7 +109,7 @@ $(()->
                 $o.append($("""<span style='padding: 5px 20px; color: #f66;'>No Such command: \" #{fnName} \"</span>"""))
                 self.goon()
 
-        # 命令结束， 继续
+    # 命令结束， 继续
         goon: ()->
             @$("#terminal_path").text("Sysweb:#{@currentDir}  #{if Sysweb.User.currentUser && Sysweb.User.currentUser.username then Sysweb.User.currentUser.username else 'Anonymous'}$")
             @$input.val("").show().focus()
@@ -124,14 +131,13 @@ $(()->
             if (path.indexOf("/") == 0)
                 cDir = ""
             path = cDir + "/" + path
-            path = path.substr(0, path.length-1) while path.lastIndexOf("/") == path.length - 1 && path.length > 0
+            path = path.substr(0, path.length - 1) while path.lastIndexOf("/") == path.length - 1 && path.length > 0
             path = path.replace("//", "/") while path.indexOf("//") >= 0
             return path
 
-        initialize: ( @args = {}
-                      @template = @args.template || @template
-                      @style = @args.style || @style )->
-
+        initialize: (@args = {}
+                     @template = @args.template || @template
+                     @style = @args.style || @style)->
             $("#terminal").remove() if $("#terminal").length > 0
             @$el = $(@template).css(@style)
             $("body").append(@$el)
@@ -152,8 +158,10 @@ $(()->
 
         initEvents: ->
             self = @
-            @$el.on("click", -> self.$input.focus())
-            @$input.on("keydown", (e)-> self.keyBoardListener(e))
+            @$el.on("click", ->
+                self.$input.focus())
+            @$input.on("keydown", (e)->
+                self.keyBoardListener(e))
             Sysweb.User.on("logined", @goon, @)
             Sysweb.User.on("forbidden", ->
                 @outputError("Command forbidden, you have to log in.")
@@ -175,10 +183,9 @@ $(()->
                 return @nextInput()
 
 
-
     Applications.set("terminal", Terminal)
 
-    Terminal.getTerminal = (args)->
+    Terminal.getInstance = (args)->
         if (!Terminal.instance)
             Terminal.instance = new Terminal(args)
         Terminal.instance.$("#terminal_input input").focus()
@@ -186,7 +193,8 @@ $(()->
 
 
     # 添加命令
-    Terminal.addCommandFunction = (name, fn=(args)->)-> Terminal.commandFunctions[name] = fn
+    Terminal.addCommandFunction = (name, fn = (args)->)->
+        Terminal.commandFunctions[name] = fn
 
     # Terminal 命令
     Terminal.commandFunctions =
@@ -194,7 +202,7 @@ $(()->
             @output(@currentDir)
             @goon()
 
-        cd: (line, args, path=path || '.')->
+        cd: (line, args, path = path || '.')->
             self = @
             path = @getOpreateDir(path) + "/"
             Sysweb.fs.isDir(path).done((result)->
@@ -203,7 +211,7 @@ $(()->
                 self.goon()
             )
 
-        ls: (line, args, path=path || ".")->
+        ls: (line, args, path = path || ".")->
             self = @
             Sysweb.fs.ls(self.getOpreateDir(path)).done((result)->
                 $o = self.output()
@@ -211,7 +219,7 @@ $(()->
                 self.goon()
             )
 
-        touch: (line, args, path=path || ".")->
+        touch: (line, args, path = path || ".")->
             self = @
             if(args.length < 1)
                 @outputError("Missing parameters")
@@ -265,7 +273,7 @@ $(()->
 
         echo: (line, args)->
             self = @
-            if(args.length < 3 || args[args.length-2] != ">>")
+            if(args.length < 3 || args[args.length - 2] != ">>")
                 @output(line.replace("echo", "").trim())
                 return @goon()
 
@@ -273,8 +281,8 @@ $(()->
             text = line.substr(5, line.lastIndexOf(">>") - 5).trim()
             if(text.indexOf("\"") == 0)
                 text = text.substr(1)
-            if(text.lastIndexOf("\"") == text.length-1)
-                text = text.substr(0, text.length-1)
+            if(text.lastIndexOf("\"") == text.length - 1)
+                text = text.substr(0, text.length - 1)
 
             Sysweb.fs.echo(path, text).done((result)->
                 if(result.exists)
@@ -283,7 +291,7 @@ $(()->
                     self.goon()
             )
 
-        mkdir: (line, args, path=args[0] || "")->
+        mkdir: (line, args, path = args[0] || "")->
             self = @
             path = self.getOpreateDir(path)
             Sysweb.fs.mkdir(path).done((result)->
@@ -298,7 +306,7 @@ $(()->
                 if(!result.exists)
                     self.goon()
             )
-        cp: (line, args, source=args[0], dest=args[1])->
+        cp: (line, args, source = args[0], dest = args[1])->
             self = @
             if (args.length < 2)
                 $o = self.output()
@@ -312,7 +320,7 @@ $(()->
                     self.goon()
             )
 
-        mv: (line, args, source=args[0], dest=args[1])->
+        mv: (line, args, source = args[0], dest = args[1])->
             self = @
             if (!source || !dest)
                 self.outputError("arguments provided is not enough")
@@ -333,7 +341,7 @@ $(()->
                     $o.append($("<pre style='padding: 5px 20px; color: #fff;'>#{$("<div/>").text(result.text).html()}</pre>"))
                     self.goon()
             )
-        tail: (line, args, path=args[0], start, stop)->
+        tail: (line, args, path = args[0], start, stop)->
             self = @
             Sysweb.fs.tail(self.getOpreateDir(path), start, stop).done((result)->
                 if(result.text)
@@ -342,15 +350,13 @@ $(()->
                 self.goon()
             )
 
-    terminal = Terminal.getTerminal()
+    terminal = Terminal.getInstance()
 
     # Login
     Terminal.addCommandFunction("login", (line, args)->
         self = @
-        if(args.indexOf("-e")>=0)
-            email = args[args.indexOf("-e") + 1]
-        if(args.indexOf("-p")>=0)
-            password = args[args.indexOf("-p") + 1]
+        email = @getParam("-e")
+        password = @getParam("-p")
         if(email && password)
             Sysweb.User.login({
                 email: email
@@ -358,7 +364,7 @@ $(()->
             }).done((result)->
                 if(result.user)
                     Sysweb.User.currentUser = result.user
-                    Terminal.getTerminal().currentDir = "/"
+                    Terminal.getInstance().currentDir = "/"
                     $o = terminal.output()
                     $o.append($("<span style='padding: 5px 20px; color: #6f6;'>has login as [#{result.user.username}]</span>"))
                 else
@@ -373,13 +379,11 @@ $(()->
     # Register
     Terminal.addCommandFunction("register", (line, args)->
         self = @
+        email = @getParam("-e")
+        password = @getParam("-p")
 
-        if(args.indexOf("-e")>=0)
-            email = args[args.indexOf("-e") + 1]
-        if(args.indexOf("-p")>=0)
-            password = args[args.indexOf("-p") + 1]
-
-        Sysweb.User.once("registerfailed", -> self.goon())
+        Sysweb.User.once("registerfailed", ->
+            self.goon())
         if(email && password)
             Sysweb.User.register({
                 email: email

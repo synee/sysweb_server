@@ -1,6 +1,6 @@
 $ ()->
 #    继承方法
-    _extend = (child, parent, props={}, staticProps={})->
+    _extend = (child, parent, props = {}, staticProps = {})->
         child.prototype = Object.create(parent.prototype)
         for key, value of Object.create(props)
             child.prototype[key] = value
@@ -15,20 +15,24 @@ $ ()->
         @constructor(arguments)
         @
 
-    Class.prototype.constructor = -> @initialize.apply(@, arguments)
+    Class.prototype.constructor = ->
+        @initialize.apply(@, arguments)
     Class.prototype.initialize = ->
-    Class.extend = (props={}, staticProps={})->
+    Class.extend = (props = {}, staticProps = {})->
         self = @
-        _Class = -> self.prototype.constructor.apply(@, arguments)
+        _Class = ->
+            self.prototype.constructor.apply(@, arguments)
         _Class = _extend(_Class, @, props, staticProps)
-        _Class.extend = -> self.extend.apply(@, arguments)
+        _Class.extend = ->
+            self.extend.apply(@, arguments)
         return _Class
 
-    Events = window.Events = -> @constructor(arguments)
+    Events = window.Events = ->
+        @constructor(arguments)
     Events = _extend(Events, Class, {
 
-        # 监听
-        on: (signal, callback, ctx=@, evts = (@_events[signal] = @_events[signal] || {}))->
+    # 监听
+        on: (signal, callback, ctx = @, evts = (@_events[signal] = @_events[signal] || {}))->
             if(!callback)
                 return
             _listenerSequence = callback._listenerSequence = callback._listenerSequence || (new Date().getTime() + Math.random() )
@@ -40,26 +44,25 @@ $ ()->
             if @_onceevents[signal] && @_onceevents[signal][callback._listenerSequence]
                 delete @_onceevents[signal][callback._listenerSequence]
 
-        # 监听一次
-        once:(signal, callback, ctx=@, evts = (@_onceevents[signal] = @_onceevents[signal] || {}))->
+    # 监听一次
+        once: (signal, callback, ctx = @, evts = (@_onceevents[signal] = @_onceevents[signal] || {}))->
             if(!callback)
                 return
             _listenerSequence = callback._listenerSequence = callback._listenerSequence || (new Date().getTime() + Math.random() )
             evts[_listenerSequence] = { callback: callback, ctx: ctx }
 
-        # 发送
-        trigger: (signal, args=[])->
+    # 发送
+        trigger: (signal, args = [])->
             self = @
             ((->
                 delete evts[evtSeq]
                 setTimeout((->
                     if evt && evt.callback then evt.callback.apply(evt.ctx, args)
-                ),1)
-            )() for evtSeq, evt of evts) if evts = @_onceevents[signal]
+                ), 1))() for evtSeq, evt of evts) if evts = @_onceevents[signal]
 
             (setTimeout((->
                 if evt && evt.callback then evt.callback.apply(evt.ctx, args)
-            ),1) for evtSeq, evt of evts) if evts = @_events[signal]
+            ), 1) for evtSeq, evt of evts) if evts = @_events[signal]
     })
 
     Events.prototype.constructor = ->
@@ -68,72 +71,72 @@ $ ()->
         @initialize.apply(@, arguments)
         @
 
-
     _Sys = Events.extend({ initialize: -> })
 
-    window.Sysweb = window.Sysweb || (-> new _Sys() )()
+    window.Sysweb = window.Sysweb || (->
+        new _Sys())()
 
     fs = Sysweb.fs = (->
         _Fs = _Sys.extend({
 
-            # 变更目录
+        # 变更目录
             cd: (path)->
                 $.get("/fs/cd", {
                     path: path
                 })
 
-            # 查看目录下的文件的详细信息
+        # 查看目录下的文件的详细信息
             ls: (path)->
                 $.get("/fs/ls", {
                     path: path
                 }).done(resultHandler)
 
-            # 查看当前目录
+        # 查看当前目录
             pwd: ()->
 
-            # 是否存在目录
+                # 是否存在目录
             isDir: (path)->
-                $.get("/fs/isDir",{
+                $.get("/fs/isDir", {
                     path: path
                 }).done(resultHandler)
 
-            # 是否存在文件
+        # 是否存在文件
             isFile: (path)->
-                $.get("/fs/isFile",{
+                $.get("/fs/isFile", {
                     path: path
                 }).done(resultHandler)
-            # 新建文件
+        # 新建文件
             touch: (path)->
-                $.post("/fs/touch",{
+                $.post("/fs/touch", {
                     path: path
                 }).done(resultHandler)
 
-            # 新建文件夹
+        # 新建文件夹
             mkdir: (path)->
-                $.post("/fs/mkdir",{
+                $.post("/fs/mkdir", {
                     path: path
                 }).done(resultHandler)
 
-            # 删除
+        # 删除
             rm: (path)->
                 $.post("/fs/rm", {
                     path: path
                 }).done(resultHandler)
 
-            # 复制
+        # 复制
             cp: (source, dest)->
                 $.post("/fs/cp", {
                     source: source
                     dest: dest
                 }).done(resultHandler)
-            # 移动
+        # 移动
             mv: (source, dest)->
                 $.post("/fs/mv", {
                     source: source
                     dest: dest
                 }).done(resultHandler)
 
-            # 查看开头几行
+        # 查看开头几行
             head: (path, start, stop)->
                 $.post("/fs/head", {
                     path: path
@@ -141,7 +144,7 @@ $ ()->
                     stop: stop
                 }).done(resultHandler)
 
-            # 查看末尾几行
+        # 查看末尾几行
             tail: (path, start, stop)->
                 $.post("/fs/tail", {
                     path: path
@@ -149,11 +152,11 @@ $ ()->
                     stop: stop
                 }).done(resultHandler)
 
-            # 查看文件状态
+        # 查看文件状态
             stat: (path)->
                 $.get("/fs/stat", {path: path}).done(resultHandler)
 
-            # 文件缓存在前端
+        # 文件缓存在前端
             cache: (path)->
 
                 # 阅读文件
@@ -162,14 +165,14 @@ $ ()->
                     path: path
                 }).done(resultHandler)
 
-            # 重写文件
+        # 重写文件
             write: (path, text)->
                 $.post("/fs/write", {
                     path: path
                     text: text
                 }).done(resultHandler)
 
-            # 在文件末尾添加
+        # 在文件末尾添加
             append: (path, text)->
                 $.post("/fs/append", {
                     path: path
@@ -183,7 +186,7 @@ $ ()->
                 }).done(resultHandler)
 
             head: (path)->
-                $.get("/fs/head",{
+                $.get("/fs/head", {
                     path: path
                 }).done(resultHandler)
         })
@@ -192,36 +195,38 @@ $ ()->
         resultHandler = (result)->
             if(result.error)
                 newfs.trigger("fserror", arguments)
-        newfs
-    )()
+        newfs)()
 
-    Memory = Sysweb.Memory = (->
+    Sysweb.Memory = (->
         _Memory = _Sys.extend({})
-        new _Memory()
-    )()
+        new _Memory())()
 
-    Library = Sysweb.Library = (->
+    Sysweb.Library = (->
         _Library = _Sys.extend({
-            initialize: -> @_libs = {}
+            initialize: ->
+                @_libs = {}
 
             addLib: (name, lib)->
                 if (!@_libs[name])
                     @_libs[name] = lib
                 @
-            getLib: (name)-> @_libs[name]
+            getLib: (name)->
+                @_libs[name]
             removeLib: (name)->
                 delete @_libs[name]
                 @
         })
-        new _Library()
-    )()
+        new _Library())()
 
-    Environment = window.Sysweb.Environment = (->
+    window.Sysweb.Environment = (->
         _Environment = _Sys.extend({
-            initialize: -> @_envs = {}
-            set: (name, value)-> @_envs[name] = value
-            get: (name)-> @_envs[name]
-            addBoot: (tag, path, attr, attrs='')->
+            initialize: ->
+                @_envs = {}
+            set: (name, value)->
+                @_envs[name] = value
+            get: (name)->
+                @_envs[name]
+            addBoot: (tag, path, attr, attrs = '')->
                 $.post("/boot", {
                     tag: tag
                     path: path
@@ -229,23 +234,23 @@ $ ()->
                     attrs: attrs
                 })
         })
-        new _Environment()
-    )()
+        new _Environment())()
 
-    Applications = window.Sysweb.Applications = (->
+    window.Sysweb.Applications = (->
         _Apps = _Sys.extend({
             AppClass: Events.extend({})
-            initialize: -> @_apps = {}
+            initialize: ->
+                @_apps = {}
             set: (name, value)->
                 if @_apps[name]
                     return false
                 @_apps[name] = value
-            get: (name)-> @_apps[name]
+            get: (name)->
+                @_apps[name]
         })
-        new _Apps()
-    )()
+        new _Apps())()
 
-    User = window.Sysweb.User = (->
+    window.Sysweb.User = (->
         _Event = _Sys.extend({
             initialize: ->
                 self = @
@@ -254,8 +259,7 @@ $ ()->
                     if(request.status == 403)
                         self.trigger("forbidden", [event, request, settings])
 
-
-            login: (params={})->
+            login: (params = {})->
                 """ @parems email password """
                 self = @
                 $.post("/login", params).done((result)->
@@ -266,7 +270,7 @@ $ ()->
                     else
                         self.trigger("loginfailed")
                 )
-            register: (params={})->
+            register: (params = {})->
                 """ @parems email password """
                 self = @
                 $.post("/register", params).done((result)->
@@ -284,22 +288,7 @@ $ ()->
                         self.trigger("logined")
                 )
         })
-        new _Event()
-    )()
-
-
-    init = window.Sysweb.init = ->
-
-    init.addBoot = (tag, path, attr, attrs='')->
-        $.post("/boot/add", {
-            tag: tag
-            path: path
-            attr: attr
-            attrs: attrs
-        })
-
-    init.removeBoot = (path)->
-        $.post("/boot/remve", { path: path })
+        new _Event())()
 
 
 

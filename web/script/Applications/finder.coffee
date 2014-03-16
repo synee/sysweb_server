@@ -42,7 +42,8 @@ $ ->
             "click .finder-icon.dir": (e)-> @parent._itemclick(e, @model.toJSON())
         }
 
-        _editname: (evt)->
+
+        _editname: ()->
             @$(".finder-item-name").attr({contenteditable: true}).focus()
             @$(".finder-item-name").selectText()
 
@@ -161,7 +162,7 @@ $ ->
             escFn =  ()->
                 @$el.remove();
                 KeyBoardMaps.remove("esc", escFn, this);
-                Terminal.getTerminal().goon();
+                Terminal.getInstance().goon();
             KeyBoardMaps.register("esc", escFn, this);
             @render()
 

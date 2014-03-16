@@ -1,16 +1,11 @@
 package com.abillist.sysweb.controller
 
-
+import com.abillist.sysweb.interceptor.PathCheckInterceptor
 import com.abillist.sysweb.interceptor.SecureInterceptor
+import com.abillist.sysweb.interceptor.anno.PathCheck
 import com.jfinal.aop.Before
 import com.jfinal.core.ActionInvocation
 import org.apache.commons.io.FileUtils
-
-import java.lang.annotation.Documented
-import java.lang.annotation.ElementType
-import java.lang.annotation.Retention
-import java.lang.annotation.RetentionPolicy
-import java.lang.annotation.Target;
 
 @Before([SecureInterceptor.class, PathCheckInterceptor.class])
 public class FileSystemController extends AbstractController {
@@ -27,7 +22,7 @@ public class FileSystemController extends AbstractController {
         renderText(String.valueOf(file.exists()));
     }
 
-    private String getAbsolutePath(String abpath) {
+    public String getAbsolutePath(String abpath) {
         return abpath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")
     }
 
@@ -208,78 +203,6 @@ public class FileSystemController extends AbstractController {
         jsonFile.text = file.text
         renderJson(jsonFile)
     }
-
-    public static class PathCheckInterceptor implements com.jfinal.aop.Interceptor {
-        @Override
-        void intercept(ActionInvocation ai) {
-            boolean allRight = true
-            FileSystemController controller = ai.controller as FileSystemController
-            PathCheck check = ai.method.getAnnotation(PathCheck.class)
-            if (check) {
-                def existsRight = [true]
-                def notExistsRight = [true]
-                def beFileRight = [true]
-                def beDireRight = [true]
-                def file
-                check.exists().each {
-                    file = new File(controller.getParaPath(it))
-                    if (!file.exists()) {
-                        existsRight = [false, controller.getAbsolutePath(file.absolutePath)]
-                    }
-                }
-                check.notExists().each {
-                    file = new File(controller.getParaPath(it))
-                    if (file.exists()) {
-                        notExistsRight = [false, controller.getAbsolutePath(file.absolutePath)]
-                    }
-                }
-                check.beFile().each {
-                    file = new File(controller.getParaPath(it))
-                    if (file.isFile()) {
-                        beFileRight = [false, controller.getAbsolutePath(file.absolutePath)]
-                    }
-                }
-                check.beDirectory().each {
-                    file = new File(controller.getParaPath(it))
-                    if (file.isDirectory()) {
-                        beFileRight = [false, controller.getAbsolutePath(file.absolutePath)]
-                    }
-                }
-                allRight = existsRight[0] && notExistsRight[0] && beFileRight[0] && beDireRight[0]
-                if (!allRight) {
-                    def msg = ""
-                    if (!existsRight[0]) {
-                        msg += "${existsRight[1]} is not exist. "
-                    }
-                    if (!notExistsRight[0]) {
-                        msg += "${notExistsRight[1]} has already been exist. "
-                    }
-                    if (!beFileRight[0]) {
-                        msg += "${beFileRight[1]} is not a file. "
-                    }
-                    if (!beDireRight[0]) {
-                        msg += "${beDireRight[1]} is not a directory. "
-                    }
-                    controller.renderError400WithMessage(msg)
-                }
-            }
-            if (allRight) {
-                ai.invoke()
-            }
-        }
-    }
 }
 
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target([ElementType.TYPE, ElementType.METHOD])
-@Documented
-@interface PathCheck {
-    String[] exists() default ["path"];
-
-    String[] notExists() default [];
-
-    String[] beFile() default [];
-
-    String[] beDirectory() default [];
-}
