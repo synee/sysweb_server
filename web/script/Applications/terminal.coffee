@@ -150,7 +150,7 @@ $(()->
 
         initHotkey: ->
             self = @
-            KeyBoardMaps.register("ctrl+c", (e)->
+            KeyBoardMaps.register("ctrl+c", ()->
                 self.commit('')
                 self.goon()
             )
@@ -353,7 +353,7 @@ $(()->
     terminal = Terminal.getInstance()
 
     # Login
-    Terminal.addCommandFunction("login", (line)->
+    Terminal.addCommandFunction("login", ()->
         self = @
         email = @getParam("-e")
         password = @getParam("-p")
@@ -377,7 +377,7 @@ $(()->
     )
 
     # Register
-    Terminal.addCommandFunction "register", (line, args)->
+    Terminal.addCommandFunction "register", ()->
         self = @
         email = @getParam("-e")
         password = @getParam("-p")
@@ -390,6 +390,8 @@ $(()->
             }).done((result)->
                 if (result.error)
                     terminal.outputError(result.message)
+                else
+                    terminal.output("We have send you an email which to active your account.")
             )
         else
             terminal.outputError('Email and password are needed.')

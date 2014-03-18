@@ -1,5 +1,6 @@
 package com.abillist.sysweb.interceptor
 
+import com.abillist.sysweb.interceptor.anno.Form
 import com.jfinal.core.ActionInvocation
 
 /**
@@ -8,6 +9,7 @@ import com.jfinal.core.ActionInvocation
 class FormCheckInterceptor implements com.jfinal.aop.Interceptor{
     @Override
     void intercept(ActionInvocation ai) {
+        Form form = ai.method.getAnnotation(Form.class)
         ai.invoke()
     }
 }

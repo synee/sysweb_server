@@ -119,7 +119,6 @@ $ ()->
 
     # 发送
         trigger: (signal, args = [])->
-            self = @
             ((->
                 delete evts[evtSeq]
                 setTimeout((->
@@ -226,10 +225,7 @@ $ ()->
             stat: (path)->
                 $.get("/fs/stat", {path: path}).done(resultHandler)
 
-        # 文件缓存在前端
-            cache: (path)->
-
-                # 阅读文件
+        # 阅读文件
             read: (path)->
                 $.post("/fs/read", {
                     path: path

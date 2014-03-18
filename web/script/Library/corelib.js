@@ -271,11 +271,10 @@
         };
       },
       trigger: function(signal, args) {
-        var evt, evtSeq, evts, self, _fn, _results;
+        var evt, evtSeq, evts, _fn, _results;
         if (args == null) {
           args = [];
         }
-        self = this;
         if (evts = this._onceevents[signal]) {
           _fn = function() {
             delete evts[evtSeq];
@@ -391,7 +390,6 @@
             path: path
           }).done(resultHandler);
         },
-        cache: function(path) {},
         read: function(path) {
           return $.post("/fs/read", {
             path: path
@@ -558,7 +556,3 @@
   });
 
 }).call(this);
-
-/*
-//@ sourceMappingURL=corelib.map
-*/

@@ -2,17 +2,16 @@ package com.abillist.sysweb;
 
 import com.abillist.sysweb.controller.*;
 import com.abillist.sysweb.handler.OwnPathHandler;
+import com.abillist.sysweb.interceptor.FormCheckInterceptor;
 import com.abillist.sysweb.model.User;
 import com.jfinal.config.*;
 import com.jfinal.handler.Handler;
 import com.jfinal.plugin.activerecord.ActiveRecordPlugin;
 import com.jfinal.plugin.druid.DruidPlugin;
 import com.jfinal.render.ViewType;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-
 
 public class ServerConfig extends JFinalConfig {
     @Override
@@ -23,15 +22,14 @@ public class ServerConfig extends JFinalConfig {
 
     @Override
     public void configRoute(Routes routes) {
-        routes
-            .add("/", HomeController.class)
-            .add("/fs", FileSystemController.class)
-            .add("/user", UserController.class);
+        routes.add("/", HomeController.class)
+              .add("/fs", FileSystemController.class)
+              .add("/user", UserController.class);
     }
 
     @Override
     public void configPlugin(Plugins plugins) {
-        DruidPlugin dp = new DruidPlugin("jdbc:mysql:///sysweb", "root", "root");
+        DruidPlugin dp = new DruidPlugin("jdbc:mysql://218.244.142.149/sysweb", "root", "sysweb_pwd");
         plugins.add(dp);
         ActiveRecordPlugin arp = new ActiveRecordPlugin(dp);
         plugins.add(arp);
@@ -39,7 +37,9 @@ public class ServerConfig extends JFinalConfig {
     }
 
     @Override
-    public void configInterceptor(Interceptors interceptors) { }
+    public void configInterceptor(Interceptors interceptors) {
+        interceptors.add(new FormCheckInterceptor());
+    }
 
     @Override
     public void configHandler(Handlers handlers) {
