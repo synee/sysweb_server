@@ -10,7 +10,6 @@ import org.apache.commons.io.FileUtils
 @Before([SecureInterceptor.class, PathCheckInterceptor.class])
 public class FileSystemController extends AbstractController {
 
-
     public void index() {
         String path = getPara("path");
         if (path == null) {
@@ -22,12 +21,9 @@ public class FileSystemController extends AbstractController {
         renderText(String.valueOf(file.exists()));
     }
 
-    public String getAbsolutePath(String abpath) {
-        return abpath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")
-    }
+    def getAbsolutePath(String abpath) { abpath.replace("$FS_ROOT/${getCurrentUser().getUsername()}", "")}
 
-    def fileToInfo(File file) {
-        [
+    def fileToInfo(File file) {[
             name: file.name,
             directory: file.isDirectory(),
             file: file.isFile(),
@@ -35,9 +31,7 @@ public class FileSystemController extends AbstractController {
             exists: file.exists(),
             parent: file.getParent().replace("$FS_ROOT/${getCurrentUser().getUsername()}", "/").replaceAll("//", "/"),
             modify: file.lastModified()
-        ]
-    }
-
+    ]}
 
     @PathCheck()
     public void ls() {
@@ -139,11 +133,8 @@ public class FileSystemController extends AbstractController {
         BufferedReader reader = new BufferedReader(new FileReader(file))
         StringBuffer buffer = new StringBuffer()
         String line
-        for (int i; (line = reader.readLine()) != null && i < stop; i++) {
-            if (i >= start) {
-                buffer.append(line).append("\n")
-            }
-        }
+        for (int i; (line = reader.readLine()) != null && i < stop; i++)
+            if (i >= start) buffer.append(line).append("\n")
         def jsonFile = this.fileToInfo(file)
         jsonFile.text = buffer.toString()
         renderJson(jsonFile)
@@ -160,9 +151,7 @@ public class FileSystemController extends AbstractController {
         def len = stop - start
         while ((line = reader.readLine()) != null) {
             lines.push(line)
-            if (lines.size() > len) {
-                lines.pop()
-            }
+            if (lines.size() > len) lines.pop()
         }
         def jsonFile = this.fileToInfo(file)
         jsonFile.text = lines.join("\n")

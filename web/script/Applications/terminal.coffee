@@ -353,7 +353,7 @@ $(()->
     terminal = Terminal.getInstance()
 
     # Login
-    Terminal.addCommandFunction("login", (line, args)->
+    Terminal.addCommandFunction("login", (line)->
         self = @
         email = @getParam("-e")
         password = @getParam("-p")
@@ -372,26 +372,30 @@ $(()->
                 terminal.goon()
             )
         else
-            terminal.outputError("args error")
+            terminal.outputError("Email and password are needed.")
             @goon()
     )
 
     # Register
-    Terminal.addCommandFunction("register", (line, args)->
+    Terminal.addCommandFunction "register", (line, args)->
         self = @
         email = @getParam("-e")
         password = @getParam("-p")
-
-        Sysweb.User.once("registerfailed", ->
-            self.goon())
+        Sysweb.User.once "registerfailed", ->
+            self.goon()
         if(email && password)
             Sysweb.User.register({
                 email: email
-                username: username
                 password: password
-            })
+            }).done((result)->
+                if (result.error)
+                    terminal.outputError(result.message)
+            )
         else
-            terminal.outputError('args error')
+            terminal.outputError('Email and password are needed.')
         @goon()
-    )
+
+    Terminal.addCommandFunction "help", (line, args)->
+        window.open("/help.html", "_blank")
+        @goon()
 )

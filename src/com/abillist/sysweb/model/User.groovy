@@ -9,7 +9,7 @@ import org.apache.commons.codec.digest.Md5Crypt
 /**
  * Created by shao on 14-3-3.
  */
-class User extends AbstractModel<User>{
+class User extends AbstractModel<User> {
     public static User dao = new User()
     long id
     private String username
@@ -18,7 +18,7 @@ class User extends AbstractModel<User>{
     long getId() {
         try {
             return this.getInt("id")
-        }catch (Exception e){
+        } catch (Exception e) {
             return 0;
         }
     }
@@ -28,7 +28,7 @@ class User extends AbstractModel<User>{
     }
 
     String getUsername() {
-        return this.getStr("username")?:"Anonymous"
+        return this.getStr("username") ?: "Anonymous"
     }
 
     void setUsername(String username) {
@@ -44,20 +44,20 @@ class User extends AbstractModel<User>{
         this.password = encrypt(password)
     }
 
-    public static User login(String email, String password){
+    public static User login(String email, String password) {
         User user = dao.findFirst("SELECT * FROM user AS u WHERE u.email=? AND u.enable=true ", email)
-        if (user && encrypt(password).equals(user.getPassword())){
+        if (user && encrypt(password).equals(user.getPassword())) {
             return user
-        }else {
+        } else {
             return null
         }
     }
 
-    public static User register(String email, String username, String password){
+    public static User register(String email, String username, String password) {
         User user = dao.findFirst("SELECT * FROM user AS u WHERE u.username=? OR email=?", username, email)
-        if (user){
+        if (user) {
             return null
-        }else {
+        } else {
             user = new User()
             String code = Base64.encodeBase64URLSafeString(encrypt("$email$password").bytes)
             user.set("username", username)
@@ -69,7 +69,9 @@ class User extends AbstractModel<User>{
                 email,
                 "Account Active",
                 """
-                Click <a href='http://localhost:8080/user/active?uid=${user.getId()}&code=$code'>http://localhost:8080/user/active?uid=${user.getId()}&code=$code</a> to active your account.
+                Click <a href='http://localhost:8080/user/active?uid=${
+                    user.getId()
+                }&code=$code'>http://localhost:8080/user/active?uid=${user.getId()}&code=$code</a> to active your account.
                 <br>
                 Your password: $password
                 """
@@ -78,11 +80,11 @@ class User extends AbstractModel<User>{
         }
     }
 
-    public static encrypt(String source){
+    public static encrypt(String source) {
         return Base64.encodeBase64String(DigestUtils.md5Hex(source.getBytes()).getBytes())
     }
 
-    public boolean exists(){
+    public boolean exists() {
         return this.getId() && this.getId() > 0 && this.getBoolean("enable")
     }
 

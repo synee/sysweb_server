@@ -28,8 +28,12 @@ class AbstractController extends Controller {
         return file.getAbsolutePath();
     }
 
-    protected String getParaPath() throws NoSuchFileException {
-        return getParaPath("path");
+    protected String getParaPath() {
+        try{
+            return getParaPath("path");
+        }catch (NoSuchFileException e){
+            throw new RuntimeException(e)
+        }
     }
 
     protected String getParaPath(String pathName) throws NoSuchFileException {
@@ -56,24 +60,26 @@ class AbstractController extends Controller {
         this.currentUser = currentUser
     }
 
-    public void renderError(int status, Map map){
+    public void renderError(int status, Map map) {
         renderError(status, new JsonRender(JsonOutput.toJson(map)))
     }
 
-
-    public void renderErrorWithMessage(int status, String msg){
+    public void renderErrorWithMessage(int status, String msg) {
         renderError(status, [
             error: true,
             message: msg
         ])
     }
-    public void renderError400WithMessage(String msg){
+
+    public void renderError400WithMessage(String msg) {
         renderErrorWithMessage(400, msg)
     }
-    public void renderError404WithMessage(String msg){
+
+    public void renderError404WithMessage(String msg) {
         renderErrorWithMessage(404, msg)
     }
-    public void renderError500WithMessage(String msg){
+
+    public void renderError500WithMessage(String msg) {
         renderErrorWithMessage(500, msg)
     }
 }

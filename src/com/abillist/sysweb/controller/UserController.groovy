@@ -7,11 +7,7 @@ import com.jfinal.core.ActionKey
  * Created by shao on 14-3-5.
  */
 class UserController extends AbstractController{
-    public void current(){
-        renderJson([
-            user: getCurrentUser()
-        ])
-    }
+    public void current(){ renderJson([ user: getCurrentUser().exists()?getCurrentUser():null ]) }
 
     @ActionKey("/login")
     public void login(){
@@ -28,9 +24,7 @@ class UserController extends AbstractController{
                 setCurrentUser(user)
             }
         }
-        renderJson([
-            user: user
-        ])
+        renderJson([ user: user ])
     }
 
     @ActionKey("/register")
@@ -38,20 +32,15 @@ class UserController extends AbstractController{
         if (currentUser.getId() > 0){
             renderJson([
                 error: true,
-                message: "你不能在申请了"
+                message: "你不能再申请了."
             ])
             return
         }
         String email = getPara("email")
-        String username = email
         String password = getPara("password")
-        User user = User.register(email, username, password)
-        if (user){
-            setCurrentUser(user)
-        }
-        renderJson([
-            user: user
-        ])
+        User user = User.register(email, email, password)
+        if (user) setCurrentUser(user)
+        renderJson([user: user])
     }
     public void active(){
         User user = User.dao.findFirst("SELECT * FROM user WHERE code=?", getPara("code"))

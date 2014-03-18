@@ -9,9 +9,7 @@ import org.apache.commons.mail.HtmlEmail
  */
 class EmailService {
 
-
-
-    public static String sendEmail(String to, String subject, String content){
+    public static String sendEmail(String to, String subject, String content) {
         Email email = new HtmlEmail()
         email.setHostName("smtp.abillist.com")
         email.setAuthenticator(new DefaultAuthenticator("postmaster@abillist.com", "loveyu1314"));
